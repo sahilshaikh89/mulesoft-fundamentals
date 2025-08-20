@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:java="http://www.mulesoft.org/schema/mule/java"
-	xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
 	<http:listener-config name="Global_HTTP_Listener_Config" doc:name="HTTP Listener config" doc:id="b2da3db3-0e54-4d2d-9c30-a121d0afe998" >
 		<http:listener-connection host="127.0.0.1" port="7081" />
 	</http:listener-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="d79fd446-7b1c-4f40-94ec-809b3406ba27" >
+		<jms:active-mq-connection />
+	</jms:config>
 	<flow name="sayHello" doc:id="11a3cf82-5477-4b52-9a51-cd85016c9c4c" >
 		<http:listener doc:name="hello" doc:id="4e079a9e-1ace-4ac0-a0ed-741520a2df39" config-ref="Global_HTTP_Listener_Config" path="/hello/{surname}" allowedMethods="POST">
 			<http:response statusCode="202" reasonPhrase="Accepted for processing later">
@@ -28,11 +32,15 @@ responseMsg: payload]]]></http:body>
 		<set-variable value='#[(vars.firstName as String) ++ " " ++ (vars.lastName as String)]' doc:name="fullName" doc:id="aa455e4e-09d8-4950-9afe-4135bf8a9856" variableName="fullName"/>
 		<set-variable value='#[message.attributes.headers.role default "Mulesoft Developer"]' doc:name="Set role Header" doc:id="975b3412-19d6-4947-a771-b60e022f255f" variableName="occupation"/>
 		<set-payload value='#[output application/json&#10;---&#10;{&#10;	"salutation": message.payload.greeting default "Kem Cho!",&#10;	"contactName": vars.fullName,&#10;	"jobDescription": vars.occupation&#10;}]' doc:name="Set Payload" doc:id="9c2f2303-178b-4275-a73e-cc92f7e15976" />
-		<http:request method="POST" doc:name="Request - Invoke sayGoodbye flow - SYNC" doc:id="426faacb-4b35-4dde-9e08-bb29c0425899" url="http://127.0.0.1:7081/goodbye"/>
+		<jms:publish doc:name="Publish to JMS Queue" doc:id="0b90cdf6-9e98-48b6-97c0-052d03bea579" config-ref="JMS_Config" destination="goodbye.flow"/>
 		<logger level="INFO" doc:name="Logger" doc:id="cccc494e-d5dc-47dc-b227-1dcff262cfb9" message='#[output application/json&#10;---&#10;{&#10;	"location": flow.name,&#10;	"currentPayload": message.payload	&#10;}]'/>
 	</flow>
 	<flow name="sayGoodbye" doc:id="c79c7591-567d-49fd-8b23-aa0d03b9821f" >
-		<http:listener doc:name="Listener" doc:id="b0127b82-7861-4817-bbb8-5ef404cb1a93" config-ref="Global_HTTP_Listener_Config" path="/goodbye" allowedMethods="POST"/>
+		<jms:listener doc:name="On New Message: Listen to JMS Queue" doc:id="0eb853a8-14c4-489b-91a7-dda251d473c3" config-ref="JMS_Config" destination="goodbye.flow">
+			<jms:consumer-type >
+				<jms:queue-consumer />
+			</jms:consumer-type>
+		</jms:listener>
 		<set-payload value='#[output application/json&#10;---&#10;{&#10;	"newMessage": upper("goodbye"),&#10;	"originalPayload": message.payload&#10;}]' doc:name="Set Payload" doc:id="5c02f8d9-c192-4dd0-9f97-e1f370767349" />
 		<logger level="INFO" doc:name="Logger" doc:id="33811c66-7447-450c-a008-edd08df477ea" message='#[output application/json&#10;---&#10;{&#10;	"location": flow.name,&#10;	"currentPayload": message.payload	&#10;}]'/>
 	</flow>
