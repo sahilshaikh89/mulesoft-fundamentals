@@ -10,13 +10,30 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 		<http:listener-connection host="127.0.0.1" port="7081" />
 	</http:listener-config>
 	<flow name="sayHello" doc:id="11a3cf82-5477-4b52-9a51-cd85016c9c4c" >
-		<http:listener doc:name="hello" doc:id="4e079a9e-1ace-4ac0-a0ed-741520a2df39" config-ref="Global_HTTP_Listener_Config" path="/hello/{surname}"/>
-		<logger level="INFO" doc:name="Logger" doc:id="df163520-8e76-41d7-9a15-99be6a2992d8" message="#[message]"/>
+		<http:listener doc:name="hello" doc:id="4e079a9e-1ace-4ac0-a0ed-741520a2df39" config-ref="Global_HTTP_Listener_Config" path="/hello/{surname}" allowedMethods="POST">
+			<http:response statusCode="202" reasonPhrase="Accepted for processing later">
+				<http:body ><![CDATA[#[output application/xml
+---
+responseMsg: payload]]]></http:body>
+				<http:headers ><![CDATA[#[output application/java
+---
+{
+	"ref-id" : "DISNEY-" ++ correlationId
+}]]]></http:headers>
+			</http:response>
+		</http:listener>
+		<!-- [STUDIO:"Logger"]<logger level="INFO" doc:name="Logger" doc:id="df163520-8e76-41d7-9a15-99be6a2992d8" message="#[message&#93;"/> [STUDIO] -->
 		<set-variable value='#[message.attributes.uriParams.surname]' doc:name="Set lastName UriParams" doc:id="0ac4ee36-df0c-41eb-91c0-781398a50b23" variableName="lastName"/>
 		<set-variable value='#[message.attributes.queryParams."first-name" default "John"]' doc:name="Set firstName QueryParams" doc:id="dd845dcb-5634-4d58-b4df-44c6ac76d159" variableName="firstName"/>
 		<set-variable value='#[(vars.firstName as String) ++ " " ++ (vars.lastName as String)]' doc:name="fullName" doc:id="aa455e4e-09d8-4950-9afe-4135bf8a9856" variableName="fullName"/>
 		<set-variable value='#[message.attributes.headers.role default "Mulesoft Developer"]' doc:name="Set role Header" doc:id="975b3412-19d6-4947-a771-b60e022f255f" variableName="occupation"/>
 		<set-payload value='#[output application/json&#10;---&#10;{&#10;	"salutation": message.payload.greeting default "Kem Cho!",&#10;	"contactName": vars.fullName,&#10;	"jobDescription": vars.occupation&#10;}]' doc:name="Set Payload" doc:id="9c2f2303-178b-4275-a73e-cc92f7e15976" />
-		<logger level="INFO" doc:name="Logger" doc:id="cccc494e-d5dc-47dc-b227-1dcff262cfb9" message="#[payload]"/>
+		<http:request method="POST" doc:name="Request - Invoke sayGoodbye flow - SYNC" doc:id="426faacb-4b35-4dde-9e08-bb29c0425899" url="http://127.0.0.1:7081/goodbye"/>
+		<logger level="INFO" doc:name="Logger" doc:id="cccc494e-d5dc-47dc-b227-1dcff262cfb9" message='#[output application/json&#10;---&#10;{&#10;	"location": flow.name,&#10;	"currentPayload": message.payload	&#10;}]'/>
+	</flow>
+	<flow name="sayGoodbye" doc:id="c79c7591-567d-49fd-8b23-aa0d03b9821f" >
+		<http:listener doc:name="Listener" doc:id="b0127b82-7861-4817-bbb8-5ef404cb1a93" config-ref="Global_HTTP_Listener_Config" path="/goodbye" allowedMethods="POST"/>
+		<set-payload value='#[output application/json&#10;---&#10;{&#10;	"newMessage": upper("goodbye"),&#10;	"originalPayload": message.payload&#10;}]' doc:name="Set Payload" doc:id="5c02f8d9-c192-4dd0-9f97-e1f370767349" />
+		<logger level="INFO" doc:name="Logger" doc:id="33811c66-7447-450c-a008-edd08df477ea" message='#[output application/json&#10;---&#10;{&#10;	"location": flow.name,&#10;	"currentPayload": message.payload	&#10;}]'/>
 	</flow>
 </mule>
