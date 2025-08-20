@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="Global_HTTP_Listener_Config" doc:name="HTTP Listener config" doc:id="b2da3db3-0e54-4d2d-9c30-a121d0afe998" >
+		<http:listener-connection host="127.0.0.1" port="7081" />
+	</http:listener-config>
+	<flow name="sayHello" doc:id="11a3cf82-5477-4b52-9a51-cd85016c9c4c" >
+		<http:listener doc:name="hello" doc:id="4e079a9e-1ace-4ac0-a0ed-741520a2df39" config-ref="Global_HTTP_Listener_Config" path="/hello/{surname}"/>
+		<logger level="INFO" doc:name="Logger" doc:id="df163520-8e76-41d7-9a15-99be6a2992d8" message="#[message]"/>
+		<set-variable value='#[message.attributes.uriParams.surname]' doc:name="Set lastName UriParams" doc:id="0ac4ee36-df0c-41eb-91c0-781398a50b23" variableName="lastName"/>
+		<set-variable value='#[message.attributes.queryParams."first-name" default "John"]' doc:name="Set firstName QueryParams" doc:id="dd845dcb-5634-4d58-b4df-44c6ac76d159" variableName="firstName"/>
+		<set-variable value='#[(vars.firstName as String) ++ " " ++ (vars.lastName as String)]' doc:name="fullName" doc:id="aa455e4e-09d8-4950-9afe-4135bf8a9856" variableName="fullName"/>
+		<set-variable value='#[message.attributes.headers.role default "Mulesoft Developer"]' doc:name="Set role Header" doc:id="975b3412-19d6-4947-a771-b60e022f255f" variableName="occupation"/>
+		<set-payload value='#[output application/json&#10;---&#10;{&#10;	"salutation": message.payload.greeting default "Kem Cho!",&#10;	"contactName": vars.fullName,&#10;	"jobDescription": vars.occupation&#10;}]' doc:name="Set Payload" doc:id="9c2f2303-178b-4275-a73e-cc92f7e15976" />
+		<logger level="INFO" doc:name="Logger" doc:id="cccc494e-d5dc-47dc-b227-1dcff262cfb9" message="#[payload]"/>
+	</flow>
+</mule>
